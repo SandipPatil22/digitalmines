@@ -7,6 +7,9 @@ import { Pit } from "../models/pit.model.js";
 import { Mines } from "../models/mines.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Trip } from "../models/Trips.model.js";
+import { Shift } from "../models/shift.model.js";
+import { Plant } from "../models/Plant.model.js";
+
 const minerals = ["Bauxite", "Waste", "SubGrade", "Top Soil"];
 
 const section = ["Section A", "Section B", "Section C", "Section D"];
@@ -14,10 +17,10 @@ const section = ["Section A", "Section B", "Section C", "Section D"];
 const moistureContent = ["0%", "5%", "10%", "15%"];
 
 const subGrade = [
-  "Below 40% Al2O3",
-  "40% to below 45% Al2O3",
-  "45% to below 50% Al2O3",
-  "50% to below 55% Al2O3",
+  "Rom 1",
+  "Rom 2",
+  "Rom 3",
+  // "50% to below 55% Al2O3",
 ];
 
 const createPit = asyncHandler(async (req, res) => {
@@ -34,10 +37,11 @@ const createPit = asyncHandler(async (req, res) => {
     mineId,
   } = req.body;
 
-  const isExist = await Pit.findOne({ pitCode });
+  const pitExists = await Pit.findOne({ pitCode });
 
-  if (isExist) {
-    return res.status(400).json({ message: "Pit already exists" });
+  if (pitExists) {
+    res.status(400);
+    throw new Error("Pit already exists");
   }
 
   const corporationId = req?.user?._id;
@@ -56,73 +60,32 @@ const createPit = asyncHandler(async (req, res) => {
   });
 
   if (pit) {
-    res.status(200).json({ message: "Pit created succesfully", data: pit });
-  } else {
-    return res.status(400).json({ message: "Fail to create pit" });
+    res.status(200).json({
+      message: "Pit created successfully",
+      data: pit,
+    });
   }
 });
 
 const getPits = asyncHandler(async (req, res) => {
   const mineId = req.params.mineId;
   const corporationId = req?.user?._id;
-
   if (!mineId) {
-    return res.status(404).json({ message: "mine Id required" });
+    return res.status(400).json({ message: "Mine ID is required" });
   }
-
-  const pit = await Pit.find({
+  const pits = await Pit.find({
     mineId: mineId,
     corporation: corporationId,
     status: true,
   });
 
-  if (pit.length > 0) {
-    return res
-      .status(200)
-      .json({ message: "Pits featched succesfully", data: pit });
+  if (pits.length > 0) {
+    return res.status(200).json({
+      message: "Pits fetched successfully",
+      data: pits,
+    });
   } else {
-    return res.status(400).json({ message: "no pit found" });
-  }
-});
-
-const updatePit = asyncHandler(async (req, res) => {
-  const {
-    pitCode,
-    pitName,
-    mineralsName,
-    locationcoords,
-    pitArea,
-    pitLength,
-    pitWidth,
-    pitDepth,
-    status,
-    mineId,
-  } = req.body;
-
-  const isExist = await Pit.find(pitCode);
-  if (!isExist) {
-    return res.status(404).json({ message: "pit not found" });
-  }
-
-  const pit = await Pit.findByIdAndUpdate(
-    req.params.pitId,
-    {
-      pitCode,
-      pitName,
-      mineralsName,
-      locationcoords,
-      pitArea,
-      pitLength,
-      pitWidth,
-      pitDepth,
-      status,
-      mineId,
-    },
-    { new: true }
-  );
-
-  if (pit) {
-    res.status(200).json({ message: "Pit updated succesfully", data: pit });
+    return res.status(404).json({ message: "No pits found" });
   }
 });
 
@@ -140,8 +103,52 @@ const deletePit = asyncHandler(async (req, res) => {
   }
 });
 
+const updatePit = asyncHandler(async (req, res) => {
+  const {
+    pitCode,
+    pitName,
+    mineralsName,
+    locationcoords,
+    pitArea,
+    pitLength,
+    pitWidth,
+    pitDepth,
+    status,
+    mineId,
+  } = req.body;
+
+  const pit = await Pit.findById(req.params.pitId);
+  if ((pit.status = false)) {
+    return res.status(400).json({ message: "pit not found" });
+  }
+
+  if (pit) {
+    pit.pitCode = pitCode;
+    pit.pitName = pitName;
+    pit.mineralsName = mineralsName;
+    pit.locationcoords = locationcoords;
+    pit.pitArea = pitArea;
+    pit.pitLength = pitLength;
+    pit.pitWidth = pitWidth;
+    pit.pitDepth = pitDepth;
+    pit.status = status;
+    pit.mineId = mineId;
+    pit.status = true;
+
+    const updatedPit = await pit.save();
+    res.status(200).json({
+      message: "Pit updated successfully",
+      data: updatedPit,
+    });
+  } else {
+    res.status(404);
+    throw new Error("Pit not found");
+  }
+});
+
 const getAllTaskPreData = asyncHandler(async (req, res) => {
   const pits = await Pit.find({}, { pitCode: 1, pitName: 1, _id: 1 });
+  const plants = await Plant.find({}, { plantName: 1, _id: 1 });
   const bench = await Bench.find(
     {},
     { pit: 1, benchName: 1, _id: 1, benchLocation: 1 }
@@ -165,14 +172,14 @@ const getAllTaskPreData = asyncHandler(async (req, res) => {
         from: "trips",
         localField: "_id",
         foreignField: "dumper",
-        as: "trips",
+        as: "trips", // Join trips for each dumper
       },
     },
     {
       $match: {
         $or: [
-          { "trips.tripStatus": { $ne: "InProgress" } }, // Exclude dumpers with InProgress trips
-          // { trips: { $eq: [] } }, // Include dumpers with no trips at all
+          { trips: { $eq: [] } }, // Dumpers with no trips at all
+          { "trips.tripStatus": { $ne: "InProgress" } }, // Dumpers with trips not in "InProgress" status
         ],
       },
     },
@@ -180,52 +187,12 @@ const getAllTaskPreData = asyncHandler(async (req, res) => {
       $project: {
         _id: 1,
         dumperNumber: 1,
-        // Add any other fields you want to include from the Dumper model
+        // Include any additional fields as necessary
       },
     },
     {
-      $unionWith: {
-        coll: "trips",
-        pipeline: [
-          {
-            $match: {
-              tripStatus: "Completed",
-              // isWeightDone: false,
-              // createdAt: { $gte: startOfDay, $lte: endOfDay },
-            },
-          },
-          {
-            $lookup: {
-              from: "dumpers",
-              localField: "dumper",
-              foreignField: "_id",
-              as: "dumperDetails",
-            },
-          },
-          {
-            $unwind: "$dumperDetails",
-          },
-          {
-            $group: {
-              _id: "$dumperDetails._id",
-              dumper: { $first: "$dumperDetails" },
-            },
-          },
-          {
-            $replaceRoot: { newRoot: "$dumper" },
-          },
-        ],
-      },
-    },
-    {
-      $group: {
-        _id: "$_id",
-        dumperNumber: { $first: "$dumperNumber" },
-        dumperCapacity: { $first: "$dumperCapacity" },
-        corporation: { $first: "$corporation" },
-        status: { $first: "$status" },
-        createdAt: { $first: "$createdAt" },
-        updatedAt: { $first: "$updatedAt" },
+      $sort: {
+        dumperNumber: 1, // Sort by dumperNumber in ascending order
       },
     },
   ]);
@@ -240,7 +207,10 @@ const getAllTaskPreData = asyncHandler(async (req, res) => {
     { operatorName: 1, _id: 1 }
   );
   const destinationStockpile = await Destination.find(
-    { destinationType: "Stockpile" },
+    // { destinationType: "Stockpile" },
+    {
+      $or: [{ destinationType: "Stockpile" }, { destinationType: "Plant" }],
+    },
     { destinationName: 1, destinationLocation: 1, _id: 1 }
   );
 
@@ -249,14 +219,26 @@ const getAllTaskPreData = asyncHandler(async (req, res) => {
     { destinationName: 1, destinationLocation: 1, _id: 1 }
   );
 
+  // shift data
+  const userId = req.user._id;
+  // Find the shift created by the user on the current day
+  const shift = await Shift.findOne({
+    createdBy: userId,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
+  })
+    .select("section")
+    .populate("loadingUnit", "unitId")
+    .populate("pit", "pitName");
+
   if (pits) {
     res.status(200).json({
       message: "All task data fetched successfully",
       data: {
-        pits,
-        section,
+        // pits,
+        // section,
+        shiftData: shift,
         bench: bench,
-        loading,
+        // loading,
         loadingOperator,
         material: minerals,
         subGrade: subGrade,
@@ -298,8 +280,8 @@ const getPitsByCorporation = asyncHandler(async (req, res) => {
 export {
   createPit,
   getPits,
-  updatePit,
   deletePit,
+  updatePit,
   getAllTaskPreData,
   getPitsByCorporation,
 };

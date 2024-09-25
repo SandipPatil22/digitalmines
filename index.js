@@ -27,14 +27,14 @@ app.use(express.urlencoded({ extended: true })); // to parse form the data in re
 app.use(cookieParser());
 
 // routes
-import roleRouter from './routes/role.route.js'
-import userRouter from './routes/user.route.js'
-import shiftRoute from './routes/shift.route.js'
-import SupervisorRouter from './routes/supervisor.routes.js'
-import mineRouter from './routes/mine.routes.js'
-import pitRouter from './routes/pit.routes.js'
+import roleRouter from "./routes/role.route.js";
+import userRouter from "./routes/user.route.js";
+import shiftRoute from "./routes/shift.route.js";
+import SupervisorRouter from "./routes/supervisor.routes.js";
+import mineRouter from "./routes/mine.routes.js";
+import pitRouter from "./routes/pit.routes.js";
 import benchRouter from "./routes/bench.routes.js";
-import loadingRouter from './routes/loading.routes.js'
+import loadingRouter from "./routes/loading.routes.js";
 import dumperRouter from "./routes/dumper.routes.js";
 import destinationRouter from "./routes/destination.routes.js";
 import operatorRouter from "./routes/operator.routes.js";
@@ -42,13 +42,14 @@ import plantRoute from "./routes/plant.routes.js";
 import stockpileRoutes from "./routes/stockpile.routes.js";
 import buyerRoutes from "./routes/buyers.routes.js";
 import targetRouter from "./routes/target.routes.js";
+import stockpileShiftRouter from "./routes/stockpileShift.routes.js";
+import weighbridgeShiftRouter from "./routes/weighbridgeShift.routes.js";
 
-
-app.use('/api/v1/role',roleRouter)
-app.use('/api/v1/user',userRouter)
-app.use('/api/v1/shift',shiftRoute)
-app.use('/api/v1/supervisor',SupervisorRouter)
-app.use('/api/v1/mine', mineRouter)
+app.use("/api/v1/role", roleRouter);
+app.use("/api/v1/user", userRouter);
+app.use("/api/v1/shift", shiftRoute);
+app.use("/api/v1/supervisor", SupervisorRouter);
+app.use("/api/v1/mine", mineRouter);
 app.use("/api/v1/pit", pitRouter);
 app.use("/api/v1/bench", benchRouter);
 app.use("/api/v1/loading", loadingRouter);
@@ -59,4 +60,5 @@ app.use("/api/v1/plant", plantRoute);
 app.use("/api/v1/stockpile", stockpileRoutes);
 app.use("/api/v1/buyers", buyerRoutes);
 app.use("/api/v1/target", targetRouter);
-
+app.use("/api/v1/stockpileshift", stockpileShiftRouter);
+app.use("/api/v1/weighbridgeshift", weighbridgeShiftRouter);

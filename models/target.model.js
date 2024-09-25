@@ -3,7 +3,11 @@ import mongoose from "mongoose";
 
 const targetSchema = new Schema(
   {
-    target: {
+    materialTarget: {
+      type: String,
+      required: true,
+    },
+    wasteTarget: {
       type: String,
       required: true,
     },

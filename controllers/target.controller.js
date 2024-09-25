@@ -1,25 +1,27 @@
 import { Target } from "../models/target.model.js";
+import { Trip } from "../models/Trips.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const createTarget = asyncHandler(async (req, res) => {
-  const { target, month, year } = req.body;
+  const { materialTarget, wasteTarget, month, year } = req.body;
 
-  if (!target || !month || !year) {
-    return res.status(400).json({ message: "All fields are required" });
+  if (!materialTarget || !wasteTarget || !month || !year) {
+    return res.status(400).json({ message: "Please provide all the details" });
   }
 
-  const newTagret = await Target.create({
-    target,
+  const newTarget = await Target.create({
+    materialTarget,
+    wasteTarget,
     month,
     year,
     corporation: req.user._id,
     createdBy: req.user._id,
   });
 
-  if (newTagret) {
+  if (newTarget) {
     return res
-      .status(200)
-      .json({ message: "Target created succesfully", data: newTagret });
+      .status(201)
+      .json({ message: "Target created successfully", data: newTarget });
   } else {
     return res.status(400).json({ message: "Failed to create target" });
   }
@@ -35,27 +37,54 @@ const getTarget = asyncHandler(async (req, res) => {
   if (target.length > 0) {
     return res
       .status(200)
-      .json({ message: "featch target succesfully", data: target });
+      .json({ message: "featech target succesfully", data: target });
   } else {
-    return res.status(400).json({ message: "fail to featch data" });
+    return res.status(404).json({ message: "fail to featch data " });
   }
 });
 
 const updateTarget = asyncHandler(async (req, res) => {
-    const { target, month, year } = req.body;
-    const updatetarget = await Target.findByIdAndUpdate(
-      req.params.id,
-      { target, month, year },
-      { new: true }
-    );
-  
-    if (updatetarget) {
-      return res
-        .status(200)
-        .json({ message: "target updated succesfully", data: updatetarget });
-    } else {
-      return res.status(400).json({ message: "failed to update target" });
-    }
+  const { materialTarget, wasteTarget, month, year } = req.body;
+  const updatetarget = await Target.findByIdAndUpdate(
+    req.params.id,
+    { materialTarget, wasteTarget, month, year },
+    { new: true }
+  );
+
+  if (updatetarget) {
+    return res
+      .status(200)
+      .json({ message: "target updated succesfully", data: updatetarget });
+  } else {
+    return res.status(400).json({ message: "failed to update target" });
+  }
+});
+const getAdminPanelDashboard = asyncHandler(async (req, res) => {
+  const corporationId = req?.user?._id;
+  const currentMonth = new Date().toLocaleString("default", { month: "long" });
+  const target = await Target.findOne({
+    corporation: corporationId,
+    month: currentMonth,
+    status: true,
   });
 
-export {getTarget,createTarget,updateTarget};
+  const trips = await Trip.find({
+    corporation: corporationId,
+    status: true,
+  });
+
+  const totalWeight = trips.reduce((acc, trip) => acc + Number(trip.weight), 0);
+
+  const remainingTarget = Number(target?.target) - Number(totalWeight);
+
+  if (target) {
+    return res.status(200).json({
+      message: "featech target succesfully",
+      data: { target, totalWeight, trips: trips.length, remainingTarget },
+    });
+  } else {
+    return res.status(404).json({ message: "fail to featch data " });
+  }
+});
+
+export { createTarget, updateTarget, getTarget, getAdminPanelDashboard };

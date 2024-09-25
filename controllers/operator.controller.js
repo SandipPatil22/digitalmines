@@ -4,7 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const createOperator = asyncHandler(async (req, res) => {
   const { operatorName, contactNumber, role } = req.body;
 
-  if (!operatorName || !contactNumber || !role) {
+  if (!operatorName || !contactNumber) {
     res.status(400);
     throw new Error("All fields are required");
   }
@@ -65,7 +65,7 @@ const updateOperator = asyncHandler(async (req, res) => {
     { operatorName, contactNumber, role },
     { new: true }
   );
-  console.log(req.body,"operator data")
+
   if (operator) {
     return res
       .status(200)

@@ -1,7 +1,7 @@
 import { Mines } from "../models/mines.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
-const createMine = asyncHandler(async (req, res) => {
+const createMines = asyncHandler(async (req, res) => {
   const {
     registrationNumber,
     corporation,
@@ -19,10 +19,10 @@ const createMine = asyncHandler(async (req, res) => {
     mobileNo,
   } = req.body;
 
-  const isExists = await Mines.findOne({ mineCode });
-
-  if (isExists) {
-    return res.status(400).json({ message: "mine is already exist" });
+  const mineExists = await Mines.findOne({ mineCode });
+  if (mineExists) {
+    res.status(400).json({ message: "Mine already exists" });
+    throw new Error("Mine already exists");
   }
 
   const mine = await Mines.create({
@@ -41,22 +41,24 @@ const createMine = asyncHandler(async (req, res) => {
     email,
     mobileNo,
   });
+
   if (mine) {
-    res.status(200).json({ message: "mine created succesfully", data: mine });
-  } else {
-    return res.status(400).json({ message: "fail to create mine" });
+    res.status(200).json({
+      message: "Mine created Successfully",
+      data: mine,
+    });
   }
 });
 
 const getMines = asyncHandler(async (req, res) => {
   const mines = await Mines.find({ corporation: req?.user?._id, status: true });
-
+  console.log(mines.length);
   if (mines.length > 0) {
     return res
       .status(200)
-      .json({ message: "mine data featch succesfully ", data: mines });
+      .json({ data: mines, message: "Mines fetched successfully" });
   } else {
-    return res.status(400).json({ message: "no data found" });
+    return res.status(404).json({ message: "No mines found" });
   }
 });
 
@@ -64,18 +66,19 @@ const deleteMine = asyncHandler(async (req, res) => {
   const mine = await Mines.findById(req.params.mineId);
 
   if (mine) {
+    // await Mines.findByIdAndDelete(req.params.mineId);
     mine.status = false;
     await mine.save();
-    res.status(200).json({ message: "mine removed succesfully" });
+    res.json({ message: "Mine removed" });
   } else {
-    return res.status(400).json({ message: "mine not found" });
+    res.status(404);
+    throw new Error("Mine not found");
   }
 });
 
 const updateMine = asyncHandler(async (req, res) => {
   const {
     registrationNumber,
-    corporation,
     mineCode,
     mineralsName,
     village,
@@ -90,17 +93,10 @@ const updateMine = asyncHandler(async (req, res) => {
     mobileNo,
   } = req.body;
 
-  const mine = await Mines.findById(req.params.mineId);
-
-  if (!mine) {
-    return res.status(404).json({ message: "mine not found" });
-  }
-
-  const mineupdate = await Mines.findByIdAndUpdate(
+  const mine = await Mines.findByIdAndUpdate(
     req.params.mineId,
     {
       registrationNumber,
-
       mineCode,
       mineralsName,
       village,
@@ -117,13 +113,14 @@ const updateMine = asyncHandler(async (req, res) => {
     { new: true }
   );
 
-  if (mineupdate) {
+  if (mine) {
     return res
-      .status(200)
-      .json({ message: "mine update succesfully", data: mineupdate });
+      .status(201)
+      .json({ data: mine, message: "mine updated successfully" });
   } else {
-    return res.status(400).json({ message: "mine not found" });
+    res.status(404);
+    throw new Error("Mine not found");
   }
 });
 
-export { createMine, getMines, deleteMine,updateMine };
+export { createMines, getMines, deleteMine, updateMine };

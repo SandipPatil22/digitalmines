@@ -3,45 +3,53 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const createRole = asyncHandler(async (req, res) => {
   const { roleName } = req.body;
+  const roleExists = await Role.findOne({ roleName });
 
-  const isExists = await Role.findOne({name:roleName});
-  if (isExists) {
-    return res.status(400).json({ message: "Role already exist" });
+  if (roleExists) {
+    return res.status(400).json({ message: "Role already exists" });
   }
+  const corporationId = req?.user?._id;
+  const role = await Role.create({
+    name: roleName,
+    corporation: corporationId,
+  });
 
-  const newrole = await Role.create({ name:roleName, corporation: req?.user?._id });
-  if (newrole) {
-    return res.status(200).json({ message: "role created succesfully" ,data:newrole});
+  if (role) {
+    return res
+      .status(200)
+      .json({ message: "Role created successfully", data: role });
   } else {
-    return res.status(400).json({ message: "fail to crearte role" });
+    return res.status(400).json({ message: "Role creation failed" });
   }
 });
 
 const getRole = asyncHandler(async (req, res) => {
   const corporationId = req?.user?._id;
+  const roles = await Role.find({ corporation: corporationId, status: true });
 
-  const role = await Role.find({ corporation: corporationId, status: true });
-  if (role.length > 0) {
-    return res
-      .status(200)
-      .json({ message: "role featch succesfully", data: role });
+  if (roles.length > 0) {
+    return res.status(200).json({
+      message: "Roles featch succesfully",
+      data: roles,
+    });
   } else {
-    return res.status(400).json({ message: "fail to featch data " });
+    return res.status(404).json({
+      message: "No roles found",
+    });
   }
 });
 
+const deleteRole = asyncHandler(async (req, res) => {
+  const role = await Role.findById(req.params.id);
 
-const deleteRole = asyncHandler(async(req,res)=>{
+  if (role) {
+    role.status = false;
+    await role.save();
+    res.json({ message: "Role Removed" });
+  } else {
+    res.status(404);
+    throw new Error(" Role not found");
+  }
+});
 
-    const role = await Role.findById(req.params.id)
-
-    if (role) {
-        role.status=false
-        await role.save()
-
-        res.status(200).json({message:"role deleted succesfully"})
-    } else {
-        return res.status(400).json({message:"role not found"})
-    }
-})
-export {createRole,getRole,deleteRole};
+export { createRole, getRole, deleteRole };

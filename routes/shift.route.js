@@ -1,7 +1,8 @@
 import { Router } from "express";
 import {
-    endshift,
-  getPreShiftData,
+  endShift,
+  getShiftData,
+  getShiftPreData,
   startShift,
   updateShift,
 } from "../controllers/shift.controller.js";
@@ -13,10 +14,10 @@ router.route("/start-shift").post(checkAuth, startShift);
 
 router.route("/update-shift").patch(checkAuth, updateShift);
 
-router.route("/getShift").get(getPreShiftData);
+router.route("/get-shift-data").post(checkAuth, getShiftData);
 
-router.route("/end-shift").patch(checkAuth,endshift);
+router.route("/end-shift").patch(checkAuth, endShift);
 
-router.route('/get-shift-predata').get(checkAuth, getPreShiftData)
+router.route("/get-shift-predata").get(checkAuth, getShiftPreData);
 
 export default router;

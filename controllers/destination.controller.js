@@ -74,11 +74,19 @@ const updateDestination = asyncHandler(async (req, res) => {
   if (destinationUpdate) {
     return res
       .status(200)
-      .json({ message: "desttination updated succesfully", data:destinationUpdate });
+      .json({
+        message: "desttination updated succesfully",
+        data: destinationUpdate,
+      });
   } else {
     return res
       .status(400)
       .json({ message: "failed to update the destination" });
   }
 });
-export { createDestination, getDestinations, deleteDestination ,updateDestination};
+export {
+  createDestination,
+  getDestinations,
+  deleteDestination,
+  updateDestination,
+};

@@ -1,13 +1,49 @@
+import { Loading } from "../models/loading.model.js";
+import { Pit } from "../models/pit.model.js";
+import { Shift } from "../models/shift.model.js";
+import { Trip } from "../models/Trips.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import mongoose from "mongoose";
-import { Shift } from "../models/shift.model.js";
-import { Pit } from "../models/pit.model.js";
-import { Loading } from "../models/loading.model.js";
 
 const shift = ["Shift 1", "Shift 2"];
 const section = ["Section A", "Section B", "Section C", "Section D"];
 
+const getShiftPreData = asyncHandler(async (req, res) => {
+  const pit = await Pit.find({ corporation: req.user.corporation });
+  const loadingUnit = await Loading.find({ corporation: req.user.corporation });
+
+  if (pit && loadingUnit) {
+    return res.status(200).json({
+      data: { shift, pit, section, loadingUnit, section },
+      message: "Data fetched successfully",
+    });
+  } else {
+    return res.status(400).json({ message: "Failed to fetch data" });
+  }
+});
+
 const startShift = asyncHandler(async (req, res) => {
+  // // Get the start and end of the current day
+  // const startOfDay = new Date();
+  // startOfDay.setHours(0, 0, 0, 0); // Set to start of day
+
+  // const endOfDay = new Date();
+  // endOfDay.setHours(23, 59, 59, 999); // Set to end of day
+
+  // // Check if a shift already exists for today
+  // const existingShift = await Shift.findOne({
+  //   corporation: req.user.corporation,
+  //   createdBy: req.user._id,
+  //   createdAt: {
+  //     $gte: startOfDay,
+  //     $lte: endOfDay,
+  //   },
+  // });
+
+  // if (existingShift) {
+  //   return res.status(400).json({ message: "Shift already started for today" });
+  // }
+
   const newShift = await Shift.create({
     corporation: req.user.corporation,
     createdBy: req.user._id,
@@ -15,10 +51,10 @@ const startShift = asyncHandler(async (req, res) => {
 
   if (newShift) {
     return res
-      .status(200)
-      .json({ message: "shift started succesfully", data: newShift });
+      .status(201)
+      .json({ message: "Shift started successfully", data: newShift });
   } else {
-    return res.status(400).json({ message: "fail to start shift " });
+    return res.status(400).json({ message: "Failed to start shift" });
   }
 });
 
@@ -28,25 +64,76 @@ const updateShift = asyncHandler(async (req, res) => {
     shiftName,
     pit,
     section,
-    hourMeterStart,
+    whyRestart,
     loadingUnit,
+    hourMeterStart,
     loadingLat,
     loadingLong,
-
     startTime,
   } = req.body;
 
+  console.log(req.body);
+
+  if (!supervisorShiftId) {
+    return res.status(400).json({ message: "Shift ID is required" });
+  }
+
+  if (!shiftName) {
+    return res.status(400).json({ message: "Shift Name is required" });
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(pit)) {
+    return res.status(400).json({ message: "Invalid pit ID" });
+  }
+
+  // if (!mongoose.Types.ObjectId.isValid(section)) {
+  //   return res.status(400).json({ message: "Invalid section ID" });
+  // }
+
+  if (!mongoose.Types.ObjectId.isValid(loadingUnit)) {
+    return res.status(400).json({ message: "Invalid loadingUnit ID" });
+  }
+
+  // if (!pit) {
+  //   return res.status(400).json({ message: "Pit is required" });
+  // }
+
+  // if (!section) {
+  //   return res.status(400).json({ message: "Section is required" });
+  // }
+
+  // if (!loadingUnit) {
+  //   return res.status(400).json({ message: "Loading Unit is required" });
+  // }
+
+  // if (!hourMeterStart) {
+  //   return res.status(400).json({ message: "Hour Meter Start is required" });
+  // }
+
+  // if (!loadingLat) {
+  //   return res.status(400).json({ message: "Loading Latitude is required" });
+  // }
+
+  // if (!loadingLong) {
+  //   return res.status(400).json({ message: "Loading Longitude is required" });
+  // }
+
+  // if (!startTime) {
+  //   return res.status(400).json({ message: "Start Time is required" });
+  // }
+
   if (
+    !supervisorShiftId ||
     !shiftName ||
     !pit ||
     !section ||
-    !hourMeterStart ||
     !loadingUnit ||
+    !hourMeterStart ||
     !loadingLat ||
     !loadingLong ||
     !startTime
   ) {
-    return res.status(400).json({ message: "required field missing " });
+    return res.status(400).json({ message: "All fields are required" });
   }
 
   const existingShift = await Shift.findById(supervisorShiftId);
@@ -61,6 +148,7 @@ const updateShift = asyncHandler(async (req, res) => {
       shiftName,
       pit,
       section,
+      whyRestart,
       loadingUnit,
       hourMeterStart,
       loadingLat,
@@ -75,43 +163,238 @@ const updateShift = asyncHandler(async (req, res) => {
   if (shift) {
     return res
       .status(200)
-      .json({ message: "shift updated succesfully", data: shift });
+      .json({ message: "Shift updated successfully", data: shift });
   } else {
-    return res.status(400).json({ message: "failed to update shift" });
+    return res.status(400).json({ message: "Failed to update shift" });
   }
 });
 
-const endshift = asyncHandler(async (req, res) => {
-  const { hourMeterEnd, endTime, supervisorShiftId } = req.body;
+const endShift = asyncHandler(async (req, res) => {
+  const { supervisorShiftId, hourMeterEnd, endTime } = req.body;
 
-  if (!endTime || !hourMeterEnd) {
-    return res.status(404).json({ message: "Required field is missing " });
-  }
   const machineEnd = Date.now();
+  if (!supervisorShiftId) {
+    return res.status(400).json({ message: "Shift ID is required" });
+  }
+  if (!hourMeterEnd) {
+    return res.status(400).json({ message: "Hour Meter End is required" });
+  }
+  if (!machineEnd) {
+    return res.status(400).json({ message: "Machine End is required" });
+  }
+  if (!endTime) {
+    return res.status(400).json({ message: "End Time is required" });
+  }
   const shift = await Shift.findByIdAndUpdate(
     supervisorShiftId,
-    { hourMeterEnd, endTime, machineEnd, updatedBy: req.user._id },
+    {
+      hourMeterEnd,
+      machineEnd,
+      endTime,
+      updatedBy: req.user._id,
+    },
     { new: true }
   );
+  if (shift) {
+    return res
+      .status(200)
+      .json({ message: "Shift ended successfully", data: shift });
+  } else {
+    return res.status(400).json({ message: "Failed to end shift" });
+  }
+});
+
+// const getShiftData = asyncHandler(async (req, res) => {
+//   // const { shiftId } = req.body;
+
+//   // if (!shiftId) {
+//   //   return res.status(400).json({ message: "Shift ID is required" });
+//   // }
+
+//   const userId = req.user._id;
+
+//   // const shift = await Shift.findById(shiftId).populate("loadingUnit");
+
+//   const startOfDay = new Date();
+//   startOfDay.setHours(0, 0, 0, 0);
+
+//   const endOfDay = new Date();
+//   endOfDay.setHours(23, 59, 59, 999);
+
+//   // Find the shift created by the user on the current day
+//   const shift = await Shift.findOne({
+//     createdBy: userId,
+//     createdAt: { $gte: startOfDay, $lte: endOfDay },
+//   })
+//     .sort({ createdAt: -1 })
+//     .populate("loadingUnit");
+
+//   if (shift) {
+//     const { startTime, endTime, machineStart, machineEnd, loadingUnit } = shift;
+
+//     // Function to calculate time difference in minutes
+//     const calculateTimeDifference = (start, end) => {
+//       const startDate = new Date(start);
+//       const endDate = new Date(end);
+//       const differenceInMilliseconds = endDate - startDate;
+
+//       return Math.floor(differenceInMilliseconds / 1000 / 60); // Convert to minutes
+//     };
+
+//     // Calculate total shift time
+//     const totalShiftTimeInMinutes = calculateTimeDifference(startTime, endTime);
+//     // Function to convert minutes to HH.MM format
+//     const convertMinutesToHHMM = (minutes) => {
+//       const hours = Math.floor(minutes / 60);
+//       const mins = minutes % 60;
+//       return `${hours}:${mins.toString().padStart(2, "0")}`;
+//     };
+
+//     const shiftTimeFormatted = convertMinutesToHHMM(totalShiftTimeInMinutes);
+
+//     if (!loadingUnit) {
+//       return res
+//         .status(400)
+//         .json({ message: "Loading unit not found in shift" });
+//     }
+//     // retrive the loding unit data by day in future when we have lot of data
+//     const trips = await Trip.find({ loading: loadingUnit });
+
+//     let totalLoadingTimeInMinutes = 0;
+
+//     const tripsWithLoadingTime = trips.map((trip) => {
+//       const { loadingStartTime, loadingEndTime } = trip;
+
+//       if (loadingStartTime && loadingEndTime) {
+//         const start = new Date(loadingStartTime);
+//         const end = new Date(loadingEndTime);
+//         const differenceInMilliseconds = end - start;
+//         const loadingTimeInMinutes = Math.floor(
+//           differenceInMilliseconds / 1000 / 60
+//         );
+//         totalLoadingTimeInMinutes += loadingTimeInMinutes;
+//       }
+//     });
+
+//     let runningTimeInMinutes = null;
+//     if (machineStart && machineEnd) {
+//       const start = new Date(machineStart);
+//       const end = new Date(machineEnd);
+//       const differenceInMilliseconds = end - start;
+//       runningTimeInMinutes = Math.floor(differenceInMilliseconds / 1000 / 60);
+//     }
+
+//     const idleTimeInMinutes = runningTimeInMinutes - totalLoadingTimeInMinutes;
+
+//     const idleHours = Math.floor(idleTimeInMinutes / 60);
+//     const idleMinutes = idleTimeInMinutes % 60;
+//     const idleTimeFormatted = `${idleHours}:${idleMinutes}`;
+
+//     return res.status(200).json({
+//       message: "Shift fetched successfully",
+//       data: shift,
+//       runningTimeInMinutes,
+//       totalShiftTime: shiftTimeFormatted,
+//       idleTime: idleTimeFormatted,
+//     });
+//   } else {
+//     return res.status(400).json({ message: "Failed to fetch shift" });
+//   }
+// });
+
+const getShiftData = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Find the latest shift created by the user on the current day
+  const shift = await Shift.findOne({
+    createdBy: userId,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
+  })
+    .sort({ createdAt: -1 }) // Sort by createdAt in descending order (latest first)
+    .populate("loadingUnit");
 
   if (shift) {
-    return res.status(200).json({ message: "shift end succesfully", data:shift });
-  } else {
-    return res.status(400).json({ message: "failed to end the shift" });
-  }
-});
+    const { startTime, endTime, machineStart, machineEnd, loadingUnit } = shift;
 
-const getPreShiftData = asyncHandler(async (req, res) => {
-  const pit = await Pit.find({ corporation: req.user.corporation });
-  const loadingUnit = await Loading.find({ corporation: req.user.corporation });
+    // Function to convert minutes to HH:MM format
+    const convertMinutesToHHMM = (minutes) => {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours}:${mins.toString().padStart(2, "0")}`;
+    };
 
-  if (pit && loadingUnit) {
+    // Function to calculate time difference in minutes
+    const calculateTimeDifference = (start, end) => {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const differenceInMilliseconds = endDate - startDate;
+      return Math.floor(differenceInMilliseconds / 1000 / 60); // Convert to minutes
+    };
+
+    let totalShiftTimeInMinutes = 0;
+    let shiftTimeFormatted = "00:00"; // Default value if shift is still ongoing
+
+    // Check if both startTime and endTime are available before calculating total shift time
+    if (startTime && endTime) {
+      totalShiftTimeInMinutes = calculateTimeDifference(startTime, endTime);
+      shiftTimeFormatted = convertMinutesToHHMM(totalShiftTimeInMinutes);
+    }
+
+    if (!loadingUnit) {
+      return res
+        .status(400)
+        .json({ message: "Loading unit not found in shift" });
+    }
+
+    // Retrieve the loading unit data
+    const trips = await Trip.find({ loading: loadingUnit });
+
+    let totalLoadingTimeInMinutes = 0;
+
+    trips.forEach((trip) => {
+      const { loadingStartTime, loadingEndTime } = trip;
+      if (loadingStartTime && loadingEndTime) {
+        const start = new Date(loadingStartTime);
+        const end = new Date(loadingEndTime);
+        const differenceInMilliseconds = end - start;
+        const loadingTimeInMinutes = Math.floor(
+          differenceInMilliseconds / 1000 / 60
+        );
+        totalLoadingTimeInMinutes += loadingTimeInMinutes;
+      }
+    });
+
+    let runningTimeInMinutes = null;
+    if (machineStart && machineEnd) {
+      runningTimeInMinutes = calculateTimeDifference(machineStart, machineEnd);
+    }
+
+    const idleTimeInMinutes =
+      runningTimeInMinutes !== null
+        ? runningTimeInMinutes - totalLoadingTimeInMinutes
+        : null;
+
+    const idleTimeFormatted =
+      idleTimeInMinutes !== null
+        ? convertMinutesToHHMM(idleTimeInMinutes)
+        : "0:00"; // Default to "0:00" if idleTime is null
+
     return res.status(200).json({
-      message: "featch pre data succesfully",
-      data: {shift, section, pit, loadingUnit},
+      message: "Shift fetched successfully",
+      data: shift,
+      runningTimeInMinutes: runningTimeInMinutes || 0, // Default to 0 if null
+      totalShiftTime: shiftTimeFormatted,
+      idleTime: idleTimeFormatted,
     });
   } else {
-    return res.status(400).json({ message: "fail to featch pre data" });
+    return res.status(400).json({ message: "Failed to fetch shift" });
   }
 });
-export { startShift, updateShift, endshift, getPreShiftData };
+
+export { startShift, updateShift, endShift, getShiftPreData, getShiftData };

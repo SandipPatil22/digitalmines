@@ -52,7 +52,7 @@ const getBenchByPitId = asyncHandler(async (req, res) => {
 
 const getAllBenches = asyncHandler(async (req, res) => {
   const corporationId = req?.user?._id;
-
+  console.log(corporationId);
   const benches = await Bench.find({
     corporation: corporationId,
     status: true,
@@ -71,12 +71,12 @@ const updateBench = asyncHandler(async (req, res) => {
   const { pitId, benchName, benchLocation } = req.body;
   const bench = await Bench.findByIdAndUpdate(
     req.params.id,
-    { pit:pitId, benchName, benchLocation },
+    { pitId, benchName, benchLocation },
     { new: true }
   );
 
   if (bench) {
-    return res.status(200).json({ message: "bench updated succesfully",data:bench });
+    return res.status(200).json({ message: "bench updated succesfully" });
   } else {
     return res.status(400).json({ message: "failed to update bench" });
   }

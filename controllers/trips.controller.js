@@ -1,4 +1,3 @@
-import { json } from "express";
 import { Trip } from "../models/Trips.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
@@ -17,19 +16,19 @@ const createTrip = asyncHandler(async (req, res) => {
     subGrade,
     startTime,
   } = req.body;
-
+  console.log(req.body);
   if (
     !pitId ||
     !section ||
     !benchId ||
     !loadingId ||
-    !loadingOperatorId ||
-    !dumperOperatorId ||
     !material ||
     !moistureContent ||
     !dumperId ||
+    // !subGrade||
+    !loadingOperatorId ||
+    !dumperOperatorId ||
     !tripStatus ||
-    // !subGrade ||
     !startTime
   ) {
     return res.status(400).json({ message: "All fields are required" });
@@ -56,13 +55,16 @@ const createTrip = asyncHandler(async (req, res) => {
   });
 
   if (trip) {
-    res.status(201).json({ message: "Trip started succesfully", data: trip });
+    res.status(201).json({
+      message: "Loading Started successfully",
+      data: trip,
+    });
   } else {
-    return res.status(400).json({ message: "Error while creating trip" });
+    res.status(400).json({ message: "Error while creating trip" });
   }
 });
 
-const getTripByDate = asyncHandler(async (req, res) => {
+const getTripsByDate = asyncHandler(async (req, res) => {
   const corporationId = req?.user?.corporation;
 
   const today = new Date();
@@ -71,11 +73,11 @@ const getTripByDate = asyncHandler(async (req, res) => {
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const trip = await Trip.find({
+  const trips = await Trip.find({
     corporation: corporationId,
     updatedAt: {
       $gte: today,
-      $lte: tomorrow,
+      $lt: tomorrow,
     },
   })
     .populate("pit", "pitName")
@@ -86,45 +88,86 @@ const getTripByDate = asyncHandler(async (req, res) => {
     .populate("dumperOperator", "operatorName")
     .populate("destination", "destinationName destinationLocation");
 
-  if (trip.length === 0) {
-    return res.status(400).json({ message: "trip not found" });
+  if (trips.length === 0) {
+    return res.status(404).json({ message: "No trips found" });
   } else {
-    res.status(200).json({ message: "trips featches succesfully", data: trip });
+    return res.status(200).json({
+      data: trips,
+      message: "Trips fetched successfully",
+    });
   }
 });
 
 const updateTrip = asyncHandler(async (req, res) => {
   const tripId = req.params.id;
   const { endTime } = req.body;
-
+  console.log(req.body);
   if (!tripId) {
-    return res.status(400).json({ message: "Trip Id not found" });
+    return res.status(404).json({ message: "Trip Id is required" });
   }
 
   const trip = await Trip.findById(tripId);
 
   if (!trip) {
-    return res.status(400).json({ message: "trip not found" });
+    return res.status(404).json({ message: "Trip not found" });
   }
 
-  const updatedData = { loadingEndTime: endTime };
+  // Prepare the update object
+  const updateData = { loadingEndTime: endTime };
 
-  // if the material is waste set the tripStatus Completed
+  // If the material is 'Waste', set tripStatus to 'Complete'
   if (trip.material === "Waste") {
-    updatedData.tripStatus = "Complete";
+    updateData.tripStatus = "Completed";
   }
 
-  // update the trip data
-  const updatetrip = await Trip.findByIdAndUpdate(tripId, updatedData, {
-    new: true,
+  // Update the trip with the new data
+  const updatedTrip = await Trip.findByIdAndUpdate(tripId, updateData, {
+    new: true, // Returns the updated document
   });
 
-  if (updatetrip) {
-    return res
-      .status(200)
-      .json({ message: "Trip updated succesfully ", data: updatetrip });
+  // const updatedTrip = await Trip.findByIdAndUpdate(tripId, {
+  //   loadingEndTime: endTime,
+
+  // });
+
+  if (updatedTrip) {
+    return res.status(200).json({
+      message: "Trip updated successfully",
+      data: updatedTrip,
+    });
   } else {
-    return res.status(400).json({ message: "Fail to update the trip data" });
+    return res.status(400).json({ message: "Error while updating trip" });
+  }
+});
+
+const UpdateDestinationIdForTrip = asyncHandler(async (req, res) => {
+  const tripId = req.params.id;
+  const { feedback } = req.body;
+  console.log(req.body);
+  if (!tripId) {
+    return res.status(404).json({ message: "Trip Id is required" });
+  }
+  // if (!feedback) {
+  //   return res.status(404).json({ message: "Feedback is required" });
+  // }
+  const trip = await Trip.findById(tripId);
+  if (!trip) {
+    return res.status(404).json({ message: "Trip not found" });
+  }
+  const updatedTrip = await Trip.findByIdAndUpdate(tripId, {
+    destination: req.body.destinationId,
+    feedback,
+  });
+
+  if (updatedTrip) {
+    return res.status(200).json({
+      message: "Destination updated successfully",
+      data: updatedTrip,
+    });
+  } else {
+    return res
+      .status(400)
+      .json({ message: "Error while updating destination" });
   }
 });
 
@@ -140,36 +183,10 @@ const deleteTrip = asyncHandler(async (req, res) => {
   }
 });
 
-const updateDestinationForTrip = asyncHandler(async (req, res) => {
-  const tripId = req.params.id;
-  const { feedback } = req.body;
-  if (!tripId) {
-    return res.status(400).json({ message: "Trip id is required" });
-  }
-  const trip = await Trip.findById(tripId);
-  if (!trip) {
-    return res.status(404).json({ message: "trip not found" });
-  }
-
-  const updatedData = await Trip.findByIdAndUpdate(tripId, {
-    destination: req.body.destination,
-    feedback,
-  });
-  if (updatedData) {
-    return res
-      .status(200)
-      .json({ message: "Destination updated succesfully", data: updatedData });
-  } else {
-    return res
-      .status(400)
-      .josn({ message: "Error while updating the destination" });
-  }
-});
-
 export {
   createTrip,
-  getTripByDate,
+  getTripsByDate,
   updateTrip,
+  UpdateDestinationIdForTrip,
   deleteTrip,
-  updateDestinationForTrip,
 };

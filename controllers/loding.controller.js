@@ -22,7 +22,7 @@ const createLoading = asyncHandler(async (req, res) => {
   }
 });
 
-const getLoading = asyncHandler(async (req, res) => {
+const getLoadings = asyncHandler(async (req, res) => {
   const corporationId = req?.user?._id;
   const loading = await Loading.find({
     corporation: corporationId,
@@ -68,4 +68,4 @@ const updateLoading = asyncHandler(async (req, res) => {
   }
 });
 
-export { createLoading, getLoading, updateLoading, deleteLoading };
+export { createLoading, getLoadings, updateLoading, deleteLoading };

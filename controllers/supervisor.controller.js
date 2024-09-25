@@ -1,6 +1,6 @@
 import { Employee } from "../models/employee.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import  generateToken  from "../utils/generateToken.js";
+import generateToken from "../utils/generateToken.js";
 
 const createSupervisor = asyncHandler(async (req, res) => {
   const { fname, lname, email, role, phone, address, mine } = req.body;
@@ -174,5 +174,5 @@ export {
   updateSupervisor,
   deleteSupervisor,
   getUserProfile,
-  loginSupervisor
+  loginSupervisor,
 };

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import {
-  createMine,
+  
+  createMines,
   deleteMine,
   getMines,
   updateMine,
@@ -9,7 +10,7 @@ import {
 
 const router = Router();
 
-router.route("/create-mine").post(createMine);
+router.route("/create-mine").post(createMines);
 
 router.route("/get-mines").get(verifyJWT, getMines);
 

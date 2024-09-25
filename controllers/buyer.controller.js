@@ -9,7 +9,7 @@ const createBuyer = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "buyer already exist" });
   }
   const corporationId = req?.user?._id;
-  const buyer = await Buyers.create({ name:name, corporation: corporationId });
+  const buyer = await Buyers.create({ name: name, corporation: corporationId });
   console.log(corporationId);
   if (buyer) {
     return res

@@ -3,25 +3,31 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 const createDumper = asyncHandler(async (req, res) => {
   const { dumperNumber, dumperCapacity } = req.body;
+
   if (!dumperNumber || !dumperCapacity) {
-    return res.status(400).json({ message: "All fields are required" });
+    res.status(400);
+    throw new Error("All fields are required");
   }
   const corporationId = req?.user?._id;
   const dumper = await Dumper.create({
-    dumperCapacity,
     dumperNumber,
+    dumperCapacity,
+    // operatorName,
     corporation: corporationId,
   });
+
   if (dumper) {
-    res
-      .status(200)
-      .json({ message: "Dumper created succesfully", data: dumper });
+    res.status(201).json({
+      message: "Dumper created successfully",
+      data: dumper,
+    });
   } else {
-    return res.status(400).json({ message: "Error to create the dumper" });
+    res.status(400);
+    throw new Error("Error while creating dumper ");
   }
 });
 
-const getDumpers = await asyncHandler(async (req, res) => {
+const getDumpers = asyncHandler(async (req, res) => {
   const corporationId = req?.user?._id;
   const dumpers = await Dumper.find({
     corporation: corporationId,
@@ -30,15 +36,30 @@ const getDumpers = await asyncHandler(async (req, res) => {
 
   if (dumpers.length > 0) {
     res.status(200).json({
-      message: "Dumper featched succeafully",
+      message: "Dumpers fetched successfully",
       data: dumpers,
     });
   } else {
-    return res.status(400).json({ message: "No dumper found" });
+    res.status(404).json({ message: "No dumpers found" });
   }
 });
 
-const updateDumper = await asyncHandler(async (req, res) => {
+const deleteDumper = asyncHandler(async (req, res) => {
+  const dumper = await Dumper.findById(req.params.id);
+
+  if (dumper) {
+    dumper.status = false;
+    await dumper.save();
+    return res.status(200).json({
+      message: "Dumper removed ",
+    });
+  } else {
+    res.status(404);
+    throw new Error("Dumper not found");
+  }
+});
+
+const updateDumper = asyncHandler(async (req, res) => {
   const { dumperNumber, dumperCapacity } = req.body;
 
   const dumper = await Dumper.findByIdAndUpdate(
@@ -50,22 +71,9 @@ const updateDumper = await asyncHandler(async (req, res) => {
   if (dumper) {
     return res
       .status(200)
-      .json({ message: "Dumper updated succesfully", data: dumper });
+      .json({ message: "Dumper updated succeesfully", data: dumper });
   } else {
-    return res.status(400).json({ message: "Dumper not found" });
+    return res.status(400).json({ message: "failed to update the dumper" });
   }
 });
-
-const deleteDumper = await asyncHandler(async (req, res) => {
-  const dumper = await Dumper.findById(req.params.id);
-
-  if (dumper) {
-    dumper.status = false;
-    await dumper.save();
-    res.status(200).json({ message: "Dumper removed" });
-  } else {
-    return res.status(400).json({ message: "Dumper not found" });
-  }
-});
-
 export { createDumper, getDumpers, deleteDumper, updateDumper };
