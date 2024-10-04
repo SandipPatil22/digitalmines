@@ -9,19 +9,19 @@ const employeeSchema = new Schema(
     },
     lname: {
       type: String,
-        required: true,
+      required: true,
     },
-    fullname:{
-        type: String,
-        trim: true,
+    fullname: {
+      type: String,
+      trim: true,
     },
     email: {
       type: String,
-        required: true,
+      required: true,
     },
     phone: {
       type: String,
-        required: true,
+      required: true,
     },
     corporation: {
       type: Schema.Types.ObjectId,
@@ -41,7 +41,7 @@ const employeeSchema = new Schema(
     role: {
       type: Schema.Types.ObjectId,
       ref: "Role",
-      default: null
+      default: null,
     },
     supervisorId: {
       type: String,
@@ -51,9 +51,9 @@ const employeeSchema = new Schema(
       type: String,
       default: null,
     },
-    token:{
-        type:String,
-        default:null,
+    token: {
+      type: String,
+      default: null,
     },
     address: {
       type: String,
@@ -61,7 +61,7 @@ const employeeSchema = new Schema(
     },
     city: {
       type: String,
-      default: null
+      default: null,
     },
     state: {
       type: String,
@@ -84,7 +84,11 @@ const employeeSchema = new Schema(
     deletedBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
-        default: null,
+      default: null,
+    },
+    isLoggedIn: {
+      type: Boolean,
+      default: false,
     },
   },
   {

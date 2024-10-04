@@ -18,6 +18,9 @@ const shiftSchema = new Schema(
       //   required: true,
       default: null,
     },
+    whyRestart: {
+      type: String,
+    },
     hourMeterStart: {
       type: String,
       default: null,
@@ -48,11 +51,19 @@ const shiftSchema = new Schema(
       default: null,
     },
 
-    startTime: {
+    shiftStartTime: {
       type: String,
       //   required: true,
     },
-    endTime: {
+    shiftEndTime: {
+      type: String,
+      //   required: true,
+    },
+    MachineStartTime: {
+      type: String,
+      //   required: true,
+    },
+    MachineEndTime: {
       type: String,
       //   required: true,
     },

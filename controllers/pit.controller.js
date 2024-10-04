@@ -166,6 +166,43 @@ const getAllTaskPreData = asyncHandler(async (req, res) => {
   endOfDay.setHours(23, 59, 59, 999);
 
   // Use aggregation to find dumpers involved in trips created within the day
+  // const dumper = await Dumper.aggregate([
+  //   {
+  //     $lookup: {
+  //       from: "trips",
+  //       localField: "_id",
+  //       foreignField: "dumper",
+  //       as: "trips", // Join trips for each dumper
+  //     },
+  //   },
+  //   {
+  //     $match: {
+  //       $or: [
+  //         { trips: { $eq: [] } }, // Dumpers with no trips at all
+  //         { "trips.tripStatus": { $ne: "InProgress" } }, // Dumpers with trips not in "InProgress" status
+  //       ],
+  //     },
+  //   },
+
+  //   {
+  //     $project: {
+  //       _id: 1,
+  //       dumperNumber: 1,
+  //       // Include any additional fields as necessary
+  //     },
+  //   },
+  //   {
+  //     $sort: {
+  //       dumperNumber: 1, // Sort by dumperNumber in ascending order
+  //     },
+  //   },
+  // ]);
+
+  // ====================this is updated for delay the dumper
+
+  const now = new Date();
+  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
   const dumper = await Dumper.aggregate([
     {
       $lookup: {
@@ -176,11 +213,50 @@ const getAllTaskPreData = asyncHandler(async (req, res) => {
       },
     },
     {
+      $addFields: {
+        shouldHide: {
+          $cond: [
+            { $eq: [{ $size: "$trips" }, 0] }, // No trips
+            false, // Always show if no trips
+            {
+              $or: [
+                // Condition for trips with material "Waste"
+                {
+                  $and: [
+                    {
+                      $eq: [{ $arrayElemAt: ["$trips.material", 0] }, "Waste"],
+                    }, // Trip material is "Waste"
+                    {
+                      $gte: [
+                        { $arrayElemAt: ["$trips.createdAt", 0] },
+                        tenMinutesAgo,
+                      ],
+                    }, // Trip created within the last 10 minutes
+                  ],
+                },
+                // Condition for trips with materials other than "Waste" that are InProgress
+                {
+                  $and: [
+                    {
+                      $ne: [{ $arrayElemAt: ["$trips.material", 0] }, "Waste"],
+                    }, // Not Waste
+                    {
+                      $eq: [
+                        { $arrayElemAt: ["$trips.tripStatus", 0] },
+                        "InProgress",
+                      ],
+                    }, // Trip is in progress
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
       $match: {
-        $or: [
-          { trips: { $eq: [] } }, // Dumpers with no trips at all
-          { "trips.tripStatus": { $ne: "InProgress" } }, // Dumpers with trips not in "InProgress" status
-        ],
+        shouldHide: false, // Show dumpers that are not hidden
       },
     },
     {
@@ -202,14 +278,123 @@ const getAllTaskPreData = asyncHandler(async (req, res) => {
     { role: "Loading" },
     { operatorName: 1, _id: 1 }
   );
-  const dumperOperator = await Operator.find(
-    { role: "Dumper" },
-    { operatorName: 1, _id: 1 }
-  );
+  // const dumperOperator = await Operator.aggregate([
+  //   {
+  //     $match: {
+  //       role: "Dumper", // Only consider operators with the "Dumper" role
+  //     },
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "trips", // Join the trips collection
+  //       localField: "_id", // Link based on dumperOperator id
+  //       foreignField: "dumperOperator", // Match with the dumperOperator field in trips
+  //       as: "trips", // Output as an array of trips for each operator
+  //     },
+  //   },
+  //   {
+  //     $match: {
+  //       $or: [
+  //         { trips: { $size: 0 } }, // Include operators with no trips at all
+  //         { "trips.tripStatus": { $ne: "InProgress" } }, // Exclude operators in "InProgress" trips
+  //       ],
+  //     },
+  //   },
+  //   {
+  //     $project: {
+  //       _id: 1,
+  //       operatorName: 1,
+  //       // Include any additional fields as necessary
+  //     },
+  //   },
+  //   {
+  //     $sort: {
+  //       operatorName: 1, // Sort by dumperNumber in ascending order
+  //     },
+  //   },
+  // ]);
+
+  const dumperOperator = await Operator.aggregate([
+    {
+      $match: {
+        role: "Dumper", // Only consider operators with the "Dumper" role
+      },
+    },
+    {
+      $lookup: {
+        from: "trips", // Join the trips collection
+        localField: "_id", // Link based on dumperOperator id
+        foreignField: "dumperOperator", // Match with the dumperOperator field in trips
+        as: "trips", // Output as an array of trips for each operator
+      },
+    },
+    {
+      $addFields: {
+        shouldHide: {
+          $cond: [
+            { $eq: [{ $size: "$trips" }, 0] }, // No trips
+            false, // Always show if no trips
+            {
+              $or: [
+                // Condition for trips with material "Waste"
+                {
+                  $and: [
+                    {
+                      $eq: [{ $arrayElemAt: ["$trips.material", 0] }, "Waste"],
+                    }, // Trip material is "Waste"
+                    {
+                      $gte: [
+                        { $arrayElemAt: ["$trips.createdAt", 0] },
+                        tenMinutesAgo,
+                      ],
+                    }, // Trip created within the last 10 minutes
+                  ],
+                },
+                // Condition for trips with materials other than "Waste" that are InProgress
+                {
+                  $and: [
+                    {
+                      $ne: [{ $arrayElemAt: ["$trips.material", 0] }, "Waste"],
+                    }, // Not Waste
+                    {
+                      $eq: [
+                        { $arrayElemAt: ["$trips.tripStatus", 0] },
+                        "InProgress",
+                      ],
+                    }, // Trip is in progress
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    {
+      $match: {
+        shouldHide: false, // Show dumperOperators that are not hidden
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        operatorName: 1,
+        // Include any additional fields as necessary
+      },
+    },
+    {
+      $sort: {
+        operatorName: 1, // Sort by operatorName in ascending order
+      },
+    },
+  ]);
   const destinationStockpile = await Destination.find(
     // { destinationType: "Stockpile" },
     {
-      $or: [{ destinationType: "Stockpile" }, { destinationType: "Plant" }],
+      $or: [
+        { destinationType: "Stockpile" },
+        // { destinationType: "Plant" }
+      ],
     },
     { destinationName: 1, destinationLocation: 1, _id: 1 }
   );

@@ -8,11 +8,8 @@ const createRole = asyncHandler(async (req, res) => {
   if (roleExists) {
     return res.status(400).json({ message: "Role already exists" });
   }
-  const corporationId = req?.user?._id;
-  const role = await Role.create({
-    name: roleName,
-    corporation: corporationId,
-  });
+  const corporationId=  req?.user?._id
+  const role = await Role.create({ name: roleName,corporation:corporationId });
 
   if (role) {
     return res
@@ -24,8 +21,8 @@ const createRole = asyncHandler(async (req, res) => {
 });
 
 const getRole = asyncHandler(async (req, res) => {
-  const corporationId = req?.user?._id;
-  const roles = await Role.find({ corporation: corporationId, status: true });
+  const corporationId=  req?.user?._id
+  const roles = await Role.find({corporation:corporationId, status: true });
 
   if (roles.length > 0) {
     return res.status(200).json({

@@ -43,10 +43,11 @@ const startShift = asyncHandler(async (req, res) => {
   // if (existingShift) {
   //   return res.status(400).json({ message: "Shift already started for today" });
   // }
-
+  const { shiftStartTime } = req.body;
   const newShift = await Shift.create({
     corporation: req.user.corporation,
     createdBy: req.user._id,
+    shiftStartTime,
   });
 
   if (newShift) {
@@ -69,10 +70,10 @@ const updateShift = asyncHandler(async (req, res) => {
     hourMeterStart,
     loadingLat,
     loadingLong,
-    startTime,
+    MachineStartTime,
   } = req.body;
 
-  console.log(req.body);
+  // console.log(req.body);
 
   if (!supervisorShiftId) {
     return res.status(400).json({ message: "Shift ID is required" });
@@ -118,7 +119,7 @@ const updateShift = asyncHandler(async (req, res) => {
   //   return res.status(400).json({ message: "Loading Longitude is required" });
   // }
 
-  // if (!startTime) {
+  // if (!MachineStartTime) {
   //   return res.status(400).json({ message: "Start Time is required" });
   // }
 
@@ -130,8 +131,7 @@ const updateShift = asyncHandler(async (req, res) => {
     !loadingUnit ||
     !hourMeterStart ||
     !loadingLat ||
-    !loadingLong ||
-    !startTime
+    !loadingLong
   ) {
     return res.status(400).json({ message: "All fields are required" });
   }
@@ -140,6 +140,11 @@ const updateShift = asyncHandler(async (req, res) => {
   if (!existingShift) {
     return res.status(404).json({ message: "Shift not found" });
   }
+
+  console.log(
+    existingShift.shiftStartTime,
+    " existing shift time in shift controller"
+  );
 
   const machineStart = Date.now();
   const shift = await Shift.findByIdAndUpdate(
@@ -153,7 +158,7 @@ const updateShift = asyncHandler(async (req, res) => {
       hourMeterStart,
       loadingLat,
       loadingLong,
-      startTime,
+      MachineStartTime,
       machineStart,
       updatedBy: req.user._id,
     },
@@ -161,6 +166,8 @@ const updateShift = asyncHandler(async (req, res) => {
   );
 
   if (shift) {
+    //if needed then update the machineStartTime too
+    shift.shiftStartTime = existingShift.shiftStartTime;
     return res
       .status(200)
       .json({ message: "Shift updated successfully", data: shift });
@@ -170,7 +177,8 @@ const updateShift = asyncHandler(async (req, res) => {
 });
 
 const endShift = asyncHandler(async (req, res) => {
-  const { supervisorShiftId, hourMeterEnd, endTime } = req.body;
+  const { supervisorShiftId, hourMeterEnd, MachineEndTime, shiftEndTime } =
+    req.body;
 
   const machineEnd = Date.now();
   if (!supervisorShiftId) {
@@ -182,15 +190,19 @@ const endShift = asyncHandler(async (req, res) => {
   if (!machineEnd) {
     return res.status(400).json({ message: "Machine End is required" });
   }
-  if (!endTime) {
-    return res.status(400).json({ message: "End Time is required" });
+  if (!MachineEndTime) {
+    return res.status(400).json({ message: "Machine End Time is required" });
+  }
+  if (!shiftEndTime) {
+    return res.status(400).json({ message: "shift End Time Time  required" });
   }
   const shift = await Shift.findByIdAndUpdate(
     supervisorShiftId,
     {
       hourMeterEnd,
       machineEnd,
-      endTime,
+      MachineEndTime,
+      shiftEndTime,
       updatedBy: req.user._id,
     },
     { new: true }
@@ -319,8 +331,16 @@ const getShiftData = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 }) // Sort by createdAt in descending order (latest first)
     .populate("loadingUnit");
 
+  console.log(shift, "shift data ");
+
   if (shift) {
-    const { startTime, endTime, machineStart, machineEnd, loadingUnit } = shift;
+    const {
+      shiftStartTime,
+      shiftEndTime,
+      machineStart,
+      machineEnd,
+      loadingUnit,
+    } = shift;
 
     // Function to convert minutes to HH:MM format
     const convertMinutesToHHMM = (minutes) => {
@@ -340,9 +360,12 @@ const getShiftData = asyncHandler(async (req, res) => {
     let totalShiftTimeInMinutes = 0;
     let shiftTimeFormatted = "00:00"; // Default value if shift is still ongoing
 
-    // Check if both startTime and endTime are available before calculating total shift time
-    if (startTime && endTime) {
-      totalShiftTimeInMinutes = calculateTimeDifference(startTime, endTime);
+    // Check if both shiftStartTime and endTime are available before calculating total shift time
+    if (shiftStartTime && shiftEndTime) {
+      totalShiftTimeInMinutes = calculateTimeDifference(
+        shiftStartTime,
+        shiftEndTime
+      );
       shiftTimeFormatted = convertMinutesToHHMM(totalShiftTimeInMinutes);
     }
 
@@ -353,8 +376,8 @@ const getShiftData = asyncHandler(async (req, res) => {
     }
 
     // Retrieve the loading unit data
-    const trips = await Trip.find({ loading: loadingUnit });
-
+    const trips = await Trip.find({ loading: loadingUnit._id, createdBy: userId });
+console.log(userId,'user id in get shift data',loadingUnit._id)
     let totalLoadingTimeInMinutes = 0;
 
     trips.forEach((trip) => {
@@ -369,6 +392,10 @@ const getShiftData = asyncHandler(async (req, res) => {
         totalLoadingTimeInMinutes += loadingTimeInMinutes;
       }
     });
+
+    const totalLoadingTimeFormatted = convertMinutesToHHMM(
+      totalLoadingTimeInMinutes
+    );
 
     let runningTimeInMinutes = null;
     if (machineStart && machineEnd) {
@@ -385,12 +412,17 @@ const getShiftData = asyncHandler(async (req, res) => {
         ? convertMinutesToHHMM(idleTimeInMinutes)
         : "0:00"; // Default to "0:00" if idleTime is null
 
+    console.log(runningTimeInMinutes, "running time");
+    console.log(shiftTimeFormatted, "total shift time");
+    console.log(idleTimeFormatted, "ideal machine time");
     return res.status(200).json({
       message: "Shift fetched successfully",
       data: shift,
       runningTimeInMinutes: runningTimeInMinutes || 0, // Default to 0 if null
       totalShiftTime: shiftTimeFormatted,
-      idleTime: idleTimeFormatted,
+      idleTime: totalLoadingTimeFormatted,
+      idleTimeFormatted,
+      totalLoadingTimeInMinutes,
     });
   } else {
     return res.status(400).json({ message: "Failed to fetch shift" });

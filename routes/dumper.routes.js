@@ -15,6 +15,6 @@ router.route("/getDumpers").get(verifyJWT, getDumpers);
 
 router.route("/deleteDumper/:id").patch(verifyJWT, deleteDumper);
 
-router.route("/update-dumper/:id").patch(verifyJWT, updateDumper);
+router.route('/update-dumper/:id').patch(verifyJWT, updateDumper)
 
 export default router;

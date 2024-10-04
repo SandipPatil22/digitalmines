@@ -12,6 +12,6 @@ router.route("/createbuyers").post(verifyJWT, createBuyer);
 
 router.route("/getbuyers").get(verifyJWT, getBuyers);
 
-router.route("/deleteBuyer/:id").patch(verifyJWT, deleteBuyers);
+router.route("/deleteBuyer/:id").patch(verifyJWT,deleteBuyers);
 
 export default router;

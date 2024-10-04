@@ -56,7 +56,7 @@ const getAllBenches = asyncHandler(async (req, res) => {
   const benches = await Bench.find({
     corporation: corporationId,
     status: true,
-  }).populate({ path: "pit", populate: { path: "mineId" } });
+  }).populate({path:"pit",populate:{path:"mineId"}});
   if (benches) {
     res.status(200).json({
       message: "Benches fetched successfully",

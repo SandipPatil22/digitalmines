@@ -13,6 +13,7 @@ const userSchema = new Schema(
     },
     fullname: {
       type: String,
+      
       trim: true,
     },
    

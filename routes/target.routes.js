@@ -10,11 +10,12 @@ import {
 const router = Router();
 
 router.route("/create-target").post(verifyJWT, createTarget);
+router.route("/getAdminPanelDashboard").get(verifyJWT, getAdminPanelDashboard);
 
 router.route("/getTarget").get(verifyJWT, getTarget);
 
-router.route("/updatetarget/:id").patch(verifyJWT, updateTarget);
+router.route('/updatetarget/:id').patch(verifyJWT, updateTarget)
 
-router.route("/getAdminPanelDashboard").get(verifyJWT, getAdminPanelDashboard);
+
 
 export default router;

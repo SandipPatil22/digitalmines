@@ -1,12 +1,11 @@
 import { Router } from "express";
- 
+import { createLoading, deleteLoading, getLoadings, updateLoading } from "../controllers/loading.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-import { createLoading, deleteLoading,  getLoadings, updateLoading } from "../controllers/loding.controller.js";
 
 
 const router = Router();
 
-router.route("/create-loading").post(verifyJWT, createLoading);
+router.route("/create-loading").post(verifyJWT,createLoading);
 
 router.route("/getLoadings").get(verifyJWT,getLoadings);
 

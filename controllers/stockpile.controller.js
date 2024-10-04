@@ -1,26 +1,27 @@
-import { Stockpile } from "../models/stockpile.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { Stockpile } from "../models/stockpile.model.js";
+import { Trip } from "../models/Trips.model.js";
+import mongoose from "mongoose";
 
-const createStockpile = asyncHandler(async (req, res) => {
+const createStockpille = asyncHandler(async (req, res) => {
   const { StockpileName } = req.body;
-  const isExist = await Stockpile.findOne({ StockpileName });
+  const StockpileExist = await Stockpile.findOne({ StockpileName });
 
-  if (isExist) {
-    return res.status(404).json({ message: "Stockpile is already created" });
+  if (StockpileExist) {
+    return res.status(404).json({ message: "Stockpile  is already exist" });
   }
-
   const corporationId = req?.user?._id;
   const stockpile = await Stockpile.create({
     StockpileName,
     corporation: corporationId,
   });
-
   if (stockpile) {
-    return res
-      .status(200)
-      .json({ message: "Stockpile created succesfully", data: stockpile });
+    return res.status(200).json({
+      message: " stockpile create succesfully",
+      data: stockpile,
+    });
   } else {
-    return res.status(400).json({ message: "Error while creating stockpile" });
+    return res.status(400).json({ message: " Fail to create stockpile" });
   }
 });
 
@@ -30,12 +31,14 @@ const getStockpile = asyncHandler(async (req, res) => {
     corporation: corporationId,
     status: true,
   });
+
   if (stockpile) {
-    return res
-      .status(200)
-      .json({ message: "featch stockpile succeafully", data: stockpile });
+    return res.status(200).json({
+      message: "featch  stockpile succesfully",
+      data: stockpile,
+    });
   } else {
-    return res.status(400).json({ message: "no sotckpile found" });
+    return res.status(404).json({ message: "No stockpile found " });
   }
 });
 
@@ -132,6 +135,27 @@ const getTripDataByDumperId = asyncHandler(async (req, res) => {
       .json({ tripData, message: "Trip data fetched successfully" });
   } else {
     return res.status(404).json({ message: "No trip data found" });
+  }
+});
+
+const completeTripOne = asyncHandler(async (req, res) => {
+  const { tripId } = req.body;
+  console.log(req.body);
+  const trip = await Trip.findByIdAndUpdate(
+    tripId,
+    {
+      tripStatus: "Completed",
+    },
+    { new: true }
+  );
+
+  if (trip) {
+    return res.status(200).json({
+      message: "Trip completed successfully",
+      data: trip,
+    });
+  } else {
+    return res.status(400).json({ message: "Error while completing trip" });
   }
 });
 
@@ -280,33 +304,12 @@ const getisWeightDoneTripsByDate = asyncHandler(async (req, res) => {
   }
 });
 
-const completeTripOne = asyncHandler(async (req, res) => {
-  const { tripId } = req.body;
-  console.log(req.body);
-  const trip = await Trip.findByIdAndUpdate(
-    tripId,
-    {
-      tripStatus: "Completed",
-    },
-    { new: true }
-  );
-
-  if (trip) {
-    return res.status(200).json({
-      message: "Trip completed successfully",
-      data: trip,
-    });
-  } else {
-    return res.status(400).json({ message: "Error while completing trip" });
-  }
-});
-
 export {
-  createStockpile,
+  createStockpille,
   getStockpile,
   deleteStockpile,
   getAllStockpileDumpersTripList,
   getTripDataByDumperId,
   getisWeightDoneTripsByDate,
-  completeTripOne
+  completeTripOne,
 };

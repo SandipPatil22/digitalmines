@@ -11,7 +11,7 @@ const destinationSchema = new Schema(
     },
     destinationType: {
       type: String,
-      enum:["Stockpile","Dumpyard"]
+      enum:["Stockpile","Dumpyard","Plant"]
     },
     corporation: {
       type: Schema.Types.ObjectId,

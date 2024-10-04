@@ -1,23 +1,27 @@
 import { Router } from "express";
 import {
+  UpdateDestinationIdForTrip,
   createTrip,
   deleteTrip,
-  getTripByDate,
-  updateDestinationForTrip,
+  getTripsByDate,
   updateTrip,
-} from "../controllers/trips.controller";
+} from "../controllers/trips.controller.js";
 
-const router = Router();
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { checkAuth } from "../middlewares/supervisorAuth.middleware.js";
 
-router.route("/start-loading").post(checkAuth, createTrip);
+const router = Router();
 
-router.route("/get-trips-by-date").get(checkAuth, getTripByDate);
+// router.use(verifyJWT);
 
-router.route("/end-loading/:id").patch(checkAuth, updateTrip);
+router.route("/start-loading").post(checkAuth,createTrip);
 
-router.route("/create-trip/:id").patch(checkAuth, updateDestinationForTrip);
+router.route("/get-trips-by-date").get(checkAuth,getTripsByDate);
 
-router.route("/delete-trip/:tripId").patch(checkAuth, deleteTrip);
+router.route("/end-loading/:id").patch(updateTrip);
+
+router.route("/create-trip/:id").patch(UpdateDestinationIdForTrip);
+
+router.route("/delete-trip/:tripId").patch(deleteTrip)
 
 export default router;
