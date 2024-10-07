@@ -231,6 +231,11 @@ const getMaterialSupervisorDashboard = asyncHandler(async (req, res) => {
   if (!supervisor) {
     return res.status(404).json({ message: "Supervisor not found" });
   }
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
 
   const currentMonth = new Date().toLocaleString("default", { month: "long" });
 
@@ -249,24 +254,52 @@ const getMaterialSupervisorDashboard = asyncHandler(async (req, res) => {
   const trips = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
+
+
+  const currentYear = new Date().getFullYear();
+const currentMonths = new Date().getMonth() + 1; // Current month
+const startOfMonth = new Date(`${currentYear}-${currentMonths}-01T00:00:00.000Z`);
+
+// Get the last day of the current month
+const endOfMonth = new Date(currentYear, currentMonths, 0, 23, 59, 59, 999);
+
+const totaltrips = await Trip.find({
+  corporation: supervisor.corporation,
+  material: "Bauxite",
+  createdAt: {
+    $gte: startOfMonth,  // Start of the current month
+    $lte: endOfMonth     // End of the current month
+  }
+});
+
+  // // total trips 
+  // const totaltrips = await Trip.find({
+  //   corporation: supervisor.corporation,
+  //   material: "Bauxite",
+   
+  // });
 
   const ROM1 = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
     subGrade: "Rom 1",
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   const ROM2 = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
     subGrade: "Rom 2",
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   const ROM3 = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
     subGrade: "Rom 3",
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   // const ROM4 = await Trip.find({
@@ -274,6 +307,10 @@ const getMaterialSupervisorDashboard = asyncHandler(async (req, res) => {
   //   material: "Bauxite",
   //   subGrade: "50% to below 55% Al2O3",
   // });
+
+  const mineralTripslength = trips.filter((trip) => trip.material === "Bauxite");
+  const wasteTripslength = trips.filter((trip) => trip.material === "Waste");
+
 
   const wasteTrips = await Trip.find({
     corporation: supervisor.corporation,
@@ -294,10 +331,11 @@ const getMaterialSupervisorDashboard = asyncHandler(async (req, res) => {
 
   // const rom4weight = ROM4.reduce((acc, trip) => acc + Number(trip.weight), 0);
 
-  const totalWeight = trips.reduce((acc, trip) => acc + Number(trip.weight), 0);
+  const totalWeight = totaltrips.reduce((acc, trip) => acc + Number(trip.weight), 0);
 
   const totalTrips = await Trip.countDocuments({
     corporation: supervisor.corporation,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   // Calculate the average moisture content
@@ -383,8 +421,10 @@ const getMaterialSupervisorDashboard = asyncHandler(async (req, res) => {
     message: "Supervisor dashboard data fetched successfully",
     data: {
       supervisor: supervisor.fullname,
-      mineralTrips: trips.length,
-      wasteTrips: wasteTrips.length,
+      // mineralTrips: trips.length,
+      mineralTrips: mineralTripslength.length,
+      wasteTrips: wasteTripslength.length,
+      // wasteTrips: wasteTrips.length,
       truckTrips: totalTrips,
       shift: shiftData.shiftName,
       wasteTarget: target?.wasteTarget,
@@ -421,6 +461,13 @@ const getMaterialSupervisorReport = asyncHandler(async (req, res) => {
 
   const currentMonth = new Date().toLocaleString("default", { month: "long" });
   const currentDate = new Date().toLocaleDateString();
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
 
   // Fetch the shift based on supervisor's ID
   const shiftData = await Shift.findOne({
@@ -473,7 +520,11 @@ const getMaterialSupervisorReport = asyncHandler(async (req, res) => {
   const trips = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
+    createdBy: req.user._id,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
+  
+
   const tripsForLoading = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
@@ -504,18 +555,24 @@ const getMaterialSupervisorReport = asyncHandler(async (req, res) => {
     corporation: supervisor.corporation,
     material: "Bauxite",
     subGrade: "Rom 1",
+    createdBy: req.user._id,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   const ROM2 = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
     subGrade: "Rom 2",
+    createdBy: req.user._id,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   const ROM3 = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
     subGrade: "Rom 3",
+    createdBy: req.user._id,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   // const ROM4 = await Trip.find({
@@ -527,6 +584,7 @@ const getMaterialSupervisorReport = asyncHandler(async (req, res) => {
   const wasteTrips = await Trip.find({
     corporation: supervisor.corporation,
     material: "Waste",
+    createdBy: req.user._id,
   });
 
   // Calculate weights and totals
@@ -537,6 +595,8 @@ const getMaterialSupervisorReport = asyncHandler(async (req, res) => {
   const totalWeight = trips.reduce((acc, trip) => acc + Number(trip.weight), 0);
   const totalTrips = await Trip.countDocuments({
     corporation: supervisor.corporation,
+    createdBy: req.user._id,
+    createdAt: { $gte: startOfDay, $lte: endOfDay },
   });
 
   const data = {
@@ -645,7 +705,7 @@ const getWeighbridgeDashboard = asyncHandler(async (req, res) => {
   const completedTrips = await Trip.find({
     corporation: supervisor.corporation,
     isWeightDone: true, // Only fetch trips where weight is done
-    createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
+    // createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
   });
 
   // Total trips where isWeightDone is true
@@ -766,7 +826,7 @@ const getStockpileSupervisorDashboard = asyncHandler(async (req, res) => {
   const trips = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
-    createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
+    // createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
   });
 
   // Retrieve all complete trips with weight done for the current day
@@ -775,7 +835,7 @@ const getStockpileSupervisorDashboard = asyncHandler(async (req, res) => {
     isWeightDone: true,
     tripStatus: "Completed",
     material: "Bauxite",
-    createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
+    // createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
   });
 
   // Grade-wise filtering
@@ -818,7 +878,8 @@ const getStockpileSupervisorDashboard = asyncHandler(async (req, res) => {
 
   const totalTrips = await Trip.countDocuments({
     corporation: supervisor.corporation,
-    createdAt: { $gte: startOfDay, $lte: endOfDay }, // Count total trips for the day
+    material: "Bauxite",
+    // createdAt: { $gte: startOfDay, $lte: endOfDay }, // Count total trips for the day
   });
 
   // Upsert (Update if exists, Insert if not) dashboard data for the current day
@@ -932,15 +993,15 @@ const getStockpileDashboardReport = asyncHandler(async (req, res) => {
     createdBy: req.user._id,
   }).populate("stockpile");
 
-  const stockpile = shiftData
-    ? shiftData.stockpile.StockpileName
-    : "Unknown Shift";
+  // const stockpile = shiftData
+  //   ? shiftData.stockpile.StockpileName
+  //   : "Unknown Shift";
 
   // Retrieve the trip data for the current day
   const trips = await Trip.find({
     corporation: supervisor.corporation,
     material: "Bauxite",
-    createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
+    // createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
   });
 
   // Retrieve all complete trips with weight done for the current day
@@ -949,7 +1010,7 @@ const getStockpileDashboardReport = asyncHandler(async (req, res) => {
     isWeightDone: true,
     tripStatus: "Completed",
     material: "Bauxite",
-    createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
+    // createdAt: { $gte: startOfDay, $lte: endOfDay }, // Filter for current day
   });
 
   // Grade-wise filtering
@@ -1005,7 +1066,7 @@ const getStockpileDashboardReport = asyncHandler(async (req, res) => {
       supervisor: supervisor._id,
       corporation: supervisor.corporation,
       date: new Date(),
-      stockpileName: stockpile,
+      // stockpileName: stockpile,
       totalTrips: totalTrips,
       mineralTrips: trips.length,
       mineralExtracted: totalWeight,
@@ -1189,7 +1250,7 @@ const getWeighbridgeDashboardReport = asyncHandler(async (req, res) => {
         corporation: supervisor.corporation,
         isWeightDone: true,
         material: { $ne: "Waste" },
-        createdAt: { $gte: startOfDay, $lte: endOfDay },
+        // createdAt: { $gte: startOfDay, $lte: endOfDay },
       },
     },
     {

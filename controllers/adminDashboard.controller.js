@@ -207,6 +207,9 @@ const adminDashboard = asyncHandler(async (req, res) => {
       corporation: adminuser,
     },
     {
+      totalHandlingKT:{ 
+      
+      },
       OverburdenExtraction: {
         wasteTarget: target?.wasteTarget,
         wasteExtracted: reducedWasteExtracted.toFixed(2),
@@ -361,6 +364,9 @@ const adminDashboard = asyncHandler(async (req, res) => {
   );
 
   const data = {
+    totalHandlingKT:{ 
+      
+    },
     OverburdenExtraction: {
       wasteTarget: target?.wasteTarget,
       wasteExtracted: reducedWasteExtracted.toFixed(2),
